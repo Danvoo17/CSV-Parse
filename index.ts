@@ -15,6 +15,7 @@ type ConfigParameters = {
 	hasHeaders: boolean;
 };
 
+
 function getConfigurationOptions(
 	configFilePath: string,
 ):
@@ -25,31 +26,10 @@ function getConfigurationOptions(
 			fs.readFileSync(configFilePath).toString("utf-8"),
 		);
 
-		if (!config.delimiter) {
+		if (!config.delimiter || !config.hasHeaders || !config.separator || !config.terminator) {
 			return {
 				result: false,
-				error: `Configuration file '${configFilePath}' has no 'delimiter' parameter.`,
-			};
-		}
-
-		if (!config.hasHeaders) {
-			return {
-				result: false,
-				error: `Configuration file '${configFilePath}' has no 'hasHeaders' parameter.`,
-			};
-		}
-
-		if (!config.separator) {
-			return {
-				result: false,
-				error: `Configuration file '${configFilePath}' has no 'separator' parameter.`,
-			};
-		}
-
-		if (!config.terminator) {
-			return {
-				result: false,
-				error: `Configuration file '${configFilePath}' has no 'terminator' parameter.`,
+				error: `Configuration file '${configFilePath}' is missing required parameters.`,
 			};
 		}
 
@@ -60,56 +40,35 @@ function getConfigurationOptions(
 }
 
 
+
 function validateData(
 	data: string[][],
-): { isValid: false; error: string } | { isValid: true } {
-	const expectedTypes = ["string", "number", "string", "string"];
-	const maxLengths = [26, 2, 24, null];
-	const genders = ["male", "female"];
+): { isValid: true } | { isValid: false; error: string } {
+	for (let i = 0; i < data.length; i++) {
+		const row = data[i];
 
-	for (let rowIndex = 0; rowIndex < data.length; rowIndex++) {
-		const row = data[rowIndex];
-
-		if (row.length !== 4) {
-			return {
-				isValid: false,
-				error: `Row ${rowIndex + 1} does not contain exactly 4 columns.`,
-			};
+		if (row[0].length > 26) {
+			console.info('final validation result:')
+			console.error({isValid: false});
+			return { isValid: false, error: `Error in "name" at row ${i + 1}: exceeds 26 characters.` };
 		}
-
-		for (let colIndex = 0; colIndex < row.length; colIndex++) {
-			const value = row[colIndex];
-			const expectedType = expectedTypes[colIndex];
-			const maxLength = maxLengths[colIndex];
-
-			// Validación de tipo y longitud de caracteres para columnas específicas
-			if (colIndex === 1) {
-				// Validación para age: debe ser un número de máximo 2 dígitos
-				if (isNaN(Number(value)) || value.length > maxLength) {
-					return {
-						isValid: false,
-						error: `Row ${rowIndex + 1}, column ${colIndex + 1} (age) should be a number with up to ${maxLength} characters.`,
-					};
-				}
-			} else if (colIndex === 0 || colIndex === 2) {
-				// Validación para name y profession
-				if (typeof value !== "string" || value.length > maxLength) {
-					return {
-						isValid: false,
-						error: `Row ${rowIndex + 1}, column ${colIndex + 1} (${colIndex === 0 ? "name" : "profession"}) exceeds maximum length of ${maxLength} characters.`,
-					};
-				}
-			} else if (colIndex === 3) {
-				// Validación para gender: debe ser "male" o "female"
-				if (!genders.includes(value.toLowerCase())) {
-					return {
-						isValid: false,
-						error: `Row ${rowIndex + 1}, column ${colIndex + 1} (gender) must be either "male" or "female".`,
-					};
-				}
-			}
+		if (!/^[0-9]{1,2}$/.test(row[1])) {
+			console.info('final validation result:')
+			console.error({ isValid: false});
+			return { isValid: false, error: `Error in "age" at row ${i + 1}: must be a number with max 2 digits.` };
+		}
+		if (row[2].length > 24) {
+			console.info('final validation result:')
+			console.error({ isValid: false});
+			return { isValid: false, error: `Error in "profession" at row ${i + 1}: exceeds 24 characters.` };
+		}
+		if (row[3].toLowerCase() !== "male" && row[3].toLowerCase() !== "female") {
+			console.info('final validation result:')
+			console.error({ isValid: false});
+			return { isValid: false, error: `Error in "gender" at row ${i + 1}: must be either "male" or "female".` };
 		}
 	}
+
 	return { isValid: true };
 }
 
@@ -219,9 +178,11 @@ function parseCSV(
 		currentPosition += 1;
 	}
 
-	console.info(data);
-	return { isValid: true, data: [] };
+    console.info('-')
+	console.info('First validation result:')
+	return { isValid: true, data };
 }
+
 
 
 const filePath = "samples/sample.csv";
@@ -238,19 +199,22 @@ if (!configuration.result) {
 	process.exit(1);
 }
 
-// Parse the CSV file
 const csvData = parseCSV(filePath, configuration.options);
 if (!csvData.isValid) {
 	console.error(csvData.error);
 	process.exit(1);
+} else {
+	console.info(csvData)
 }
-   
-// Validate the parsed CSV data against column requirements
-const validation = validateData(csvData.data);
-if (!validation.isValid) {
-	console.error(validation.error);
+
+const validationResult = validateData(csvData.data);
+if (!validationResult.isValid) {
+	console.error(validationResult.error);
 	process.exit(1);
 }
 
-console.info("CSV data is valid and meets the column type and value requirements.");
 
+console.info('final validation result:')
+console.info({isValid: true})
+console.info("[CSV data is valid and meets the column type and value requirements.]");
+console.info('-')
