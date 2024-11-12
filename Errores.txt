@@ -1,0 +1,10 @@
+
+Esta es una lista de los errores que vi a lo largo de este ejercicio:
+
+1- si el lookAhead detecta un error en la proxima linea, 
+   el tira el error como si estuviera en la linea actual
+   pero realmente está en la siguiente linea.
+
+2- despues de un delimiter, si el lookAhead detecta un 
+   caracter que no sea separator o terminator, no da 
+   error, da error el siguiente caracter.
